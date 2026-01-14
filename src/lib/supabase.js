@@ -2,8 +2,16 @@ import { createClient } from '@supabase/supabase-js'
 
 // Hämta dessa värden från din Supabase-projektinställningar
 // Du hittar dem på: https://app.supabase.com/project/_/settings/api
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim() || ''
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() || ''
+let supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim() || ''
+let supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() || ''
+
+// Fixa om värdet innehåller variabelnamnet (t.ex. "VITE_SUPABASE_URL=https://...")
+if (supabaseUrl.includes('VITE_SUPABASE_URL=')) {
+  supabaseUrl = supabaseUrl.replace(/^VITE_SUPABASE_URL=/, '')
+}
+if (supabaseAnonKey.includes('VITE_SUPABASE_ANON_KEY=')) {
+  supabaseAnonKey = supabaseAnonKey.replace(/^VITE_SUPABASE_ANON_KEY=/, '')
+}
 
 // Validera att URL:en är korrekt
 const isValidUrl = supabaseUrl && (supabaseUrl.startsWith('http://') || supabaseUrl.startsWith('https://'))
@@ -13,6 +21,7 @@ if (!isValidUrl || !supabaseAnonKey) {
   console.error('VITE_SUPABASE_URL:', supabaseUrl || 'SAKNAS')
   console.error('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'OK' : 'SAKNAS')
   console.error('Kontrollera att miljövariablerna är korrekt konfigurerade i Vercel.')
+  console.error('Värdet ska vara bara URL:en, inte "VITE_SUPABASE_URL=https://..."')
 }
 
 // Skapa client endast om både URL och key finns och är giltiga
