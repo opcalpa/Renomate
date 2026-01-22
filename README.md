@@ -1,110 +1,250 @@
 # 🏠 Renomate
 
-Ett projektledarverktyg för hemrenovering där du kan skapa byggprojekt och hantera uppgifter.
+En modern, komplett plattform för hantering av renoveringsprojekt. Perfekt för husägare som vill ha full kontroll över sina byggprojekt med ett professionellt verktyg.
 
 📖 **Ny här?** Börja med [SNABBSTART.md](./SNABBSTART.md) för snabb installation!
 
-## Funktioner
+## ✨ Funktioner
 
-- ✅ Skapa nya byggprojekt med namn och beskrivning
-- ✅ Lägga till uppgifter till varje projekt
+### 🏗️ Projekthantering
+- ✅ Skapa och hantera flera renoveringsprojekt
+- ✅ Organisera projekt i rum och områden
+- ✅ Spåra projektstatus och framsteg
+- ✅ Översiktlig dashboard med nyckeltal
+
+### 📋 Uppgiftshantering
+- ✅ Skapa uppgifter för varje rum/projekt
 - ✅ Markera uppgifter som klara
-- ✅ Ta bort projekt och uppgifter
-- ✅ Se framsteg för varje projekt
-- ✅ Data sparas i Supabase-databas (med fallback till localStorage)
+- ✅ Prioritera och organisera arbetsflöde
+- ✅ Detaljerad uppgiftsinformation med beskrivningar
 
-## Installation
+### 📐 Space Planner / Floor Map
+- ✅ Rita och designa rumsplaner visuellt
+- ✅ 3D preview av dina planer
+- ✅ Mät och dimensionera rum
+- ✅ Lägg till möbler och inredning från symbolbibliotek
+- ✅ Snap-to-grid och smart snapping
+- ✅ Undo/Redo funktionalitet
+- ✅ Elevation view för väggvyer
+- ✅ Export och spara planer
 
-1. Installera beroenden:
+### 💰 Budgethantering
+- ✅ Budgetkalkylator per rum/projekt
+- ✅ Spåra kostnader och utgifter
+- ✅ Kostnadscentra för olika kategorier
+- ✅ Visuell budgetöversikt
+
+### 🛒 Material- & Inköpshantering
+- ✅ Materiallista per rum
+- ✅ Skapa inköpsförfrågningar
+- ✅ Spåra materialstatus
+- ✅ Godkänn/avvisa inköp
+
+### 👥 Teamsamarbete
+- ✅ Bjud in teammedlemmar via e-post
+- ✅ Rollbaserad åtkomst
+- ✅ Dela projekt med entreprenörer och familj
+- ✅ Realtidssamarbete
+
+### 🌍 Flerspråksstöd (i18n)
+- ✅ Svenska (sv)
+- ✅ Engelska (en)
+- ✅ Tyska (de)
+- ✅ Spanska (es)
+- ✅ Franska (fr)
+- ✅ Automatisk språkdetektering
+- ✅ Användarspecifik språkinställning
+
+### 🎨 Modern UI/UX
+- ✅ Responsiv design (mobil, tablet, desktop)
+- ✅ Dark mode stöd
+- ✅ Elegant Shadcn UI-komponenter
+- ✅ Smooth animationer och transitions
+- ✅ Tillgänglig och användarvänlig
+
+### 🔐 Autentisering & Säkerhet
+- ✅ Säker användarautentisering via Supabase
+- ✅ Row Level Security (RLS)
+- ✅ Privata projekt per användare
+- ✅ Delningsfunktionalitet med behörighetskontroll
+
+## 🚀 Snabbstart
+
+### Installation
+
+1. **Klona projektet och installera beroenden:**
 ```bash
+cd /Users/calpa/Desktop/Renomate
 npm install
 ```
 
-2. Starta utvecklingsservern:
+2. **Konfigurera Supabase (se nedan)**
+
+3. **Starta utvecklingsservern:**
 ```bash
 npm run dev
 ```
 
-3. Öppna webbläsaren och gå till den URL som visas (vanligtvis http://localhost:5173)
+4. **Öppna webbläsaren:**
+   Gå till [http://localhost:5173](http://localhost:5173)
 
-## Bygga för produktion
-
-```bash
-npm run build
-```
-
-De byggda filerna kommer att finnas i `dist/` mappen.
-
-## Teknologi
-
-- React 18
-- Vite
-- Modern CSS med gradients och animations
-- Supabase för datalagring
-- LocalStorage som fallback
-
-## Publicera på GitHub Pages
-
-📖 **Se den detaljerade guiden:** [GITHUB_SETUP.md](./GITHUB_SETUP.md)
-
-Projektet är konfigurerat för automatisk deployment till GitHub Pages. Efter att du har pushat koden till GitHub kommer appen automatiskt att byggas och deployas varje gång du gör ändringar.
-
-**Snabbstart:**
-1. Skapa repository på GitHub
-2. Pusha koden (se GITHUB_SETUP.md)
-3. Aktivera GitHub Pages i Settings
-4. Lägg till Supabase secrets (viktigt!)
-5. Vänta på automatisk deployment
-
-**Viktigt:** `.cursor/mcp.json` är redan ignorerad i `.gitignore` för att skydda din Supabase access token.
-
-## Supabase Setup
+## 🗄️ Supabase Setup
 
 📖 **Vill du förstå vad Supabase är?** Läs [SUPABASE_FORKLARING.md](./SUPABASE_FORKLARING.md)
 
-Projektet är nu integrerat med Supabase för datalagring. Följ dessa steg för att sätta upp:
-
 ### 1. Skapa Supabase-projekt
-
 1. Gå till [Supabase](https://app.supabase.com) och skapa ett nytt projekt
-2. Vänta tills projektet är klart (det tar några minuter)
+2. Vänta tills projektet är klart (tar några minuter)
 
 ### 2. Skapa databastabeller
-
 1. Öppna SQL Editor i Supabase Dashboard
-2. Kör SQL-schemat från `supabase/schema.sql`:
-   - Detta skapar `projects` och `tasks` tabellerna
-   - Sätter upp Row Level Security policies
-   - Skapar index för bättre prestanda
+2. Kör migrations från `supabase/migrations/`
+3. Detta skapar alla nödvändiga tabeller:
+   - `profiles` - Användarprofiler
+   - `projects` - Renoveringsprojekt
+   - `project_members` - Teammedlemskap
+   - `rooms` - Rum per projekt
+   - `tasks` - Uppgifter per rum
+   - `materials` - Material per rum
+   - `purchase_requests` - Inköpsförfrågningar
+   - `floor_plans` - Ritningar och planer
 
 ### 3. Konfigurera miljövariabler
+Din `.env.local` är redan konfigurerad men om du behöver uppdatera:
 
-1. Kopiera `.env.example` till `.env`:
-```bash
-cp .env.example .env
-```
-
-2. Hämta dina Supabase-uppgifter:
-   - Gå till Project Settings → API i Supabase Dashboard
-   - Kopiera `Project URL` och `anon public` key
-
-3. Uppdatera `.env` med dina värden:
 ```env
 VITE_SUPABASE_URL=https://ditt-projekt.supabase.co
-VITE_SUPABASE_ANON_KEY=ditt-anon-key
+VITE_SUPABASE_PUBLISHABLE_KEY=ditt-anon-key
 ```
 
-### 4. Installera beroenden och starta
+### 4. Aktivera Authentication
+1. Gå till Authentication → Settings i Supabase Dashboard
+2. Aktivera Email provider
+3. Konfigurera eventuella OAuth providers (Google, GitHub, etc.)
+
+## 📦 Byggkommandon
 
 ```bash
-npm install
+# Utveckling
 npm run dev
+
+# Bygga för produktion
+npm run build
+
+# Bygga för utveckling
+npm run build:dev
+
+# Förhandsgranska produktionsbygg
+npm run preview
+
+# Linting
+npm run lint
 ```
 
-### Fallback till localStorage
+## 🛠️ Teknologi Stack
 
-Om Supabase inte är konfigurerad eller om det uppstår fel, kommer applikationen automatiskt att använda localStorage som fallback. Detta gör att appen fungerar även utan Supabase-konfiguration.
+### Frontend
+- **React 18.3** - UI-ramverk
+- **TypeScript** - Typsäkerhet
+- **Vite 5** - Build tool & dev server
+- **React Router 6** - Routing
+- **TailwindCSS 3** - Styling
+- **Shadcn UI** - UI-komponentbibliotek
+- **Lucide React** - Ikoner
 
-### MCP Integration
+### State Management & Data
+- **TanStack Query (React Query)** - Server state management
+- **Zustand** - Client state management
+- **React Hook Form** - Formulärhantering
+- **Zod** - Schema validation
 
-Projektet är också konfigurerat för Supabase MCP (Model Context Protocol) i `.cursor/mcp.json`. Detta gör att du kan använda Supabase-funktioner direkt via Cursor AI.
+### Backend & Database
+- **Supabase** - Backend-as-a-Service
+  - PostgreSQL databas
+  - Autentisering
+  - Row Level Security
+  - Realtime subscriptions
+  - Edge Functions
+
+### Internationalisering
+- **i18next** - i18n-ramverk
+- **react-i18next** - React-integration
+- **i18next-browser-languagedetector** - Språkdetektering
+
+### Visualisering & Canvas
+- **Fabric.js** - Canvas manipulation för floor planner
+- **React Three Fiber** - 3D rendering
+- **@react-three/drei** - 3D helpers
+
+### UI Components
+- **Radix UI** - Headless UI-komponenter
+- **Recharts** - Diagram och grafer
+- **Sonner** - Toast notifications
+- **cmdk** - Command palette
+- **date-fns** - Datumhantering
+
+## 📁 Projektstruktur
+
+```
+Renomate/
+├── src/
+│   ├── components/
+│   │   ├── ui/              # Shadcn UI-komponenter
+│   │   ├── floormap/        # Floor planner komponenter
+│   │   ├── project/         # Projektspecifika komponenter
+│   │   ├── AppHeader.tsx    # Huvudnavigering
+│   │   ├── Footer.tsx       # Sidfot
+│   │   └── LanguageSelector.tsx
+│   ├── pages/               # Route-sidor
+│   │   ├── Index.tsx        # Startsida
+│   │   ├── Auth.tsx         # Inloggning/registrering
+│   │   ├── Projects.tsx     # Projektlista
+│   │   ├── ProjectDetail.tsx # Projektdetaljer
+│   │   ├── Profile.tsx      # Användarprofil
+│   │   └── ...
+│   ├── hooks/               # Custom React hooks
+│   ├── integrations/        # Externa integrationer
+│   │   └── supabase/        # Supabase-klient och typer
+│   ├── i18n/                # Internationalisering
+│   │   ├── config.ts
+│   │   └── locales/         # Översättningar
+│   ├── lib/                 # Utility-funktioner
+│   ├── App.tsx              # Huvudapp-komponent
+│   └── main.tsx             # Entry point
+├── public/                  # Statiska filer
+├── supabase/
+│   ├── migrations/          # Databasmigrationer
+│   └── functions/           # Edge Functions
+└── ...config files
+```
+
+## 🚀 Publicera på GitHub Pages
+
+📖 **Se den detaljerade guiden:** [GITHUB_SETUP.md](./GITHUB_SETUP.md)
+
+Projektet är konfigurerat för automatisk deployment till GitHub Pages:
+
+1. Skapa repository på GitHub
+2. Pusha koden
+3. Aktivera GitHub Pages i Settings
+4. Lägg till Supabase secrets
+5. Vänta på automatisk deployment
+
+## 🤝 Bidra
+
+Bidrag är välkomna! Öppna gärna issues eller pull requests.
+
+## 📄 Licens
+
+Detta projekt är licensierat under MIT-licensen.
+
+## 🔗 Länkar
+
+- [Supabase Documentation](https://supabase.com/docs)
+- [React Documentation](https://react.dev)
+- [TailwindCSS Documentation](https://tailwindcss.com)
+- [Shadcn UI](https://ui.shadcn.com)
+
+---
+
+**Skapad med ❤️ för att göra renoveringar enklare**

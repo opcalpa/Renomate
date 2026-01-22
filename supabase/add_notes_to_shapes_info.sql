@@ -1,0 +1,21 @@
+-- Information: No migration needed for 'notes' field in floor_map_shapes
+-- 
+-- The floor_map_shapes table stores all shape data in a JSONB column (shape_data),
+-- which is flexible and can store any additional fields without schema changes.
+-- 
+-- The 'notes' field added to the FloorMapShape TypeScript interface will automatically
+-- be stored in the shape_data JSONB column when shapes are saved.
+--
+-- This file is for documentation purposes only.
+-- 
+-- Example shape_data with notes:
+-- {
+--   "id": "uuid-here",
+--   "type": "wall",
+--   "coordinates": {...},
+--   "heightMM": 2400,
+--   "thicknessMM": 100,
+--   "notes": "This wall needs fire-rated drywall. Install metal studs at 16 inches OC."
+-- }
+
+SELECT 'No migration needed - notes field will be stored in shape_data JSONB column' AS info;
