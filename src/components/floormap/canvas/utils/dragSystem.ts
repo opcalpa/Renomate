@@ -123,13 +123,21 @@ function applyDelta(
   }
 }
 
+// Module-level read-only flag to prevent drag in view-only mode
+let _isReadOnly = false;
+export function setDragSystemReadOnly(readOnly: boolean) {
+  _isReadOnly = readOnly;
+}
+
 /**
  * Creates simple drag handlers for a shape
  * Works with both single shapes and multi-select
  */
 export function createDragHandlers(shapeId: string) {
   return {
+    draggable: !_isReadOnly,
     onDragStart: (e: KonvaEventObject<DragEvent>) => {
+      if (_isReadOnly) { e.cancelBubble = true; return; }
       e.cancelBubble = true;
       // Nothing else needed - Konva handles the visual drag
     },

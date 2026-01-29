@@ -46,9 +46,10 @@ interface SpacePlannerTopBarProps {
   projectId: string;
   projectName?: string;
   onBack?: () => void;
+  isReadOnly?: boolean;
 }
 
-export const SpacePlannerTopBar = ({ projectId, projectName, onBack }: SpacePlannerTopBarProps) => {
+export const SpacePlannerTopBar = ({ projectId, projectName, onBack, isReadOnly }: SpacePlannerTopBarProps) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -316,30 +317,36 @@ export const SpacePlannerTopBar = ({ projectId, projectName, onBack }: SpacePlan
                         </span>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPlanToDelete(plan.id);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    {!isReadOnly && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPlanToDelete(plan.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
                   </DropdownMenuItem>
                 );
               })
             )}
             
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => setShowNewPlanDialog(true)}
-              className="text-primary"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Skapa nytt plan
-            </DropdownMenuItem>
+            {!isReadOnly && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setShowNewPlanDialog(true)}
+                  className="text-primary"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Skapa nytt plan
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

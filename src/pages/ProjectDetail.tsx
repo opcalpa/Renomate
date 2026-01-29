@@ -3,10 +3,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useProfileLanguage } from "@/hooks/useProfileLanguage";
+import { useProjectPermissions } from "@/hooks/useProjectPermissions";
 import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Loader2, ChevronDown, FolderOpen } from "lucide-react";
+import { ArrowLeft, Loader2, ChevronDown, FolderOpen, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslation } from "react-i18next";
@@ -44,6 +45,14 @@ interface Project {
   finish_goal_date: string | null;
 }
 
+const NoAccessPlaceholder = () => (
+  <div className="container mx-auto px-4 py-16 flex flex-col items-center justify-center text-center">
+    <Lock className="h-12 w-12 text-muted-foreground mb-4" />
+    <h2 className="text-xl font-semibold mb-2">Ingen behörighet</h2>
+    <p className="text-muted-foreground">Du har inte tillgång till den här sektionen.</p>
+  </div>
+);
+
 const ProjectDetail = () => {
   const { projectId } = useParams();
   const { user, signOut, loading: authLoading } = useAuthSession();
@@ -66,12 +75,34 @@ const ProjectDetail = () => {
     budget: [],
     team: [],
   };
+  const permissions = useProjectPermissions(projectId);
   const [profile, setProfile] = useState<any>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [isOwner, setIsOwner] = useState(false);
-  const [canManage, setCanManage] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Map tab keys to permission keys
+  const tabPermissionMap: Record<string, string> = {
+    overview: permissions.overview,
+    spaceplanner: permissions.spacePlanner,
+    files: permissions.files,
+    // "tasks" parent tab is accessible if either tasks or timeline has access
+    tasks: (permissions.tasks !== 'none' || permissions.timeline !== 'none') ? 'view' : 'none',
+    purchases: permissions.purchases,
+    budget: permissions.budget,
+    team: permissions.teams,
+  };
+
+  const isTabBlocked = (tab: string) => tabPermissionMap[tab] === "none";
+
+  // Sub-tab permission checks
+  const isSubTabBlocked = (tab: string, subTab: string) => {
+    if (tab === 'tasks') {
+      if (subTab === 'tasklist') return permissions.tasks === 'none';
+      if (subTab === 'timeline') return permissions.timeline === 'none';
+    }
+    return false;
+  };
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [activeSubTab, setActiveSubTab] = useState<string | null>(null);
@@ -129,26 +160,6 @@ const ProjectDetail = () => {
         .order("created_at", { ascending: false });
 
       setProjects(allProjects || []);
-
-      // Check ownership and management permissions
-      if (profileData) {
-        const ownerStatus = projectData.owner_id === profileData.id;
-        setIsOwner(ownerStatus);
-
-        // Check if user can manage (is owner or has admin/editor role)
-        if (!ownerStatus) {
-          const { data: shareData } = await supabase
-            .from("project_shares")
-            .select("role")
-            .eq("project_id", projectId)
-            .eq("shared_with_user_id", profileData.id)
-            .maybeSingle();
-
-          setCanManage(shareData?.role === "admin" || shareData?.role === "editor");
-        } else {
-          setCanManage(true);
-        }
-      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -274,6 +285,8 @@ const ProjectDetail = () => {
 
   // Handle menu item selection
   const handleMenuSelect = (menuId: string, itemValue: string) => {
+    if (isTabBlocked(menuId)) return;
+    if (isSubTabBlocked(menuId, itemValue)) return;
     setActiveTab(menuId);
 
     // Handle sub-tabs for menus with sub-items
@@ -331,7 +344,7 @@ const ProjectDetail = () => {
   };
 
   // Show loading while auth or data is loading
-  if (authLoading || loading) {
+  if (authLoading || loading || permissions.loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -397,7 +410,8 @@ const ProjectDetail = () => {
                   trigger={
                     <div className={cn(
                       "px-3 py-2 text-sm font-medium cursor-pointer transition-colors",
-                      activeTab === "overview" && "border-b-2 border-primary text-primary"
+                      activeTab === "overview" && "border-b-2 border-primary text-primary",
+                      isTabBlocked("overview") && "opacity-40 pointer-events-none cursor-default"
                     )}>
                       {t("projectDetail.overview")}
                     </div>
@@ -412,7 +426,8 @@ const ProjectDetail = () => {
                   trigger={
                     <div className={cn(
                       "px-3 py-2 text-sm font-medium cursor-pointer transition-colors",
-                      activeTab === "spaceplanner" && "border-b-2 border-primary text-primary"
+                      activeTab === "spaceplanner" && "border-b-2 border-primary text-primary",
+                      isTabBlocked("spaceplanner") && "opacity-40 pointer-events-none cursor-default"
                     )}>
                       Space Planner
                     </div>
@@ -427,7 +442,8 @@ const ProjectDetail = () => {
                   trigger={
                     <div className={cn(
                       "px-3 py-2 text-sm font-medium cursor-pointer transition-colors flex items-center gap-1.5",
-                      activeTab === "files" && "border-b-2 border-primary text-primary"
+                      activeTab === "files" && "border-b-2 border-primary text-primary",
+                      isTabBlocked("files") && "opacity-40 pointer-events-none cursor-default"
                     )}>
                       <FolderOpen className="h-4 w-4" />
                       Filer
@@ -443,14 +459,19 @@ const ProjectDetail = () => {
                   trigger={
                     <div className={cn(
                       "px-3 py-2 text-sm font-medium cursor-pointer transition-colors",
-                      activeTab === "tasks" && "border-b-2 border-primary text-primary"
+                      activeTab === "tasks" && "border-b-2 border-primary text-primary",
+                      isTabBlocked("tasks") && "opacity-40 pointer-events-none cursor-default"
                     )}>
                       {t("projectDetail.tasks")}
                     </div>
                   }
-                  items={menuConfigs.tasks}
+                  items={menuConfigs.tasks.filter(item => !isSubTabBlocked('tasks', item.value))}
                   onSelect={(value) => handleMenuSelect('tasks', value)}
-                  onMainClick={() => handleMenuSelect('tasks', 'tasklist')}
+                  onMainClick={() => {
+                    // Navigate to first accessible sub-tab
+                    if (!isSubTabBlocked('tasks', 'tasklist')) handleMenuSelect('tasks', 'tasklist');
+                    else if (!isSubTabBlocked('tasks', 'timeline')) handleMenuSelect('tasks', 'timeline');
+                  }}
                   activeValue={activeTab === "tasks" ? activeSubTab || "tasklist" : undefined}
                 />
 
@@ -458,7 +479,8 @@ const ProjectDetail = () => {
                   trigger={
                     <div className={cn(
                       "px-3 py-2 text-sm font-medium cursor-pointer transition-colors",
-                      activeTab === "purchases" && "border-b-2 border-primary text-primary"
+                      activeTab === "purchases" && "border-b-2 border-primary text-primary",
+                      isTabBlocked("purchases") && "opacity-40 pointer-events-none cursor-default"
                     )}>
                       Purchases
                     </div>
@@ -473,7 +495,8 @@ const ProjectDetail = () => {
                   trigger={
                     <div className={cn(
                       "px-3 py-2 text-sm font-medium cursor-pointer transition-colors",
-                      activeTab === "budget" && "border-b-2 border-primary text-primary"
+                      activeTab === "budget" && "border-b-2 border-primary text-primary",
+                      isTabBlocked("budget") && "opacity-40 pointer-events-none cursor-default"
                     )}>
                       Budget
                     </div>
@@ -488,7 +511,8 @@ const ProjectDetail = () => {
                   trigger={
                     <div className={cn(
                       "px-3 py-2 text-sm font-medium cursor-pointer transition-colors",
-                      activeTab === "team" && "border-b-2 border-primary text-primary"
+                      activeTab === "team" && "border-b-2 border-primary text-primary",
+                      isTabBlocked("team") && "opacity-40 pointer-events-none cursor-default"
                     )}>
                       Team
                     </div>
@@ -505,86 +529,125 @@ const ProjectDetail = () => {
         )}
 
         <TabsContent value="overview" className="m-0 pb-8">
-          <div className="container mx-auto px-4 py-8">
-            <OverviewTab project={project} onProjectUpdate={loadData} projectFinishDate={project.finish_goal_date} />
-          </div>
+          {isTabBlocked("overview") ? (
+            <NoAccessPlaceholder />
+          ) : (
+            <div className="container mx-auto px-4 py-8">
+              <OverviewTab project={project} onProjectUpdate={loadData} projectFinishDate={project.finish_goal_date} />
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="spaceplanner" className="m-0 h-screen">
-          {(!activeSubTab || activeSubTab === 'floorplan') && (
-            <SpacePlannerTab
+          {isTabBlocked("spaceplanner") ? (
+            <NoAccessPlaceholder />
+          ) : (
+            <>
+              {(!activeSubTab || activeSubTab === 'floorplan') && (
+                <SpacePlannerTab
+                  projectId={project.id}
+                  projectName={project.name}
+                  onBack={() => {
+                    setActiveTab('overview');
+                    setActiveSubTab(null);
+                  }}
+                  isReadOnly={permissions.spacePlanner === 'view'}
+                />
+              )}
+              {activeSubTab === 'rooms' && (
+                <div className="container mx-auto px-4 py-8">
+                  <h2 className="text-2xl font-bold mb-4">Room Management</h2>
+                  <p className="text-muted-foreground mb-6">Manage and configure rooms for your project.</p>
+                  {roomsLoading ? (
+                    <div className="flex items-center justify-center h-64">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : (
+                    <RoomsList
+                      projectId={project.id}
+                      rooms={roomsData}
+                      onRoomClick={handleRoomClick}
+                      onAddRoom={handleAddRoom}
+                      onDeleteRoom={handleDeleteRoom}
+                      onRoomDeleted={handleRoomDeleted}
+                    />
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="files" className="m-0 pb-8">
+          {isTabBlocked("files") ? (
+            <NoAccessPlaceholder />
+          ) : (
+            <ProjectFilesTab
               projectId={project.id}
               projectName={project.name}
-              onBack={() => {
-                setActiveTab('overview');
-                setActiveSubTab(null);
+              onNavigateToFloorPlan={() => {
+                setActiveTab('spaceplanner');
+                setActiveSubTab('floorplan');
               }}
+              onUseAsBackground={handleUseAsBackground}
             />
           )}
-          {activeSubTab === 'rooms' && (
+        </TabsContent>
+
+        <TabsContent value="tasks" className="m-0 pb-8">
+          {isTabBlocked("tasks") ? (
+            <NoAccessPlaceholder />
+          ) : (
             <div className="container mx-auto px-4 py-8">
-              <h2 className="text-2xl font-bold mb-4">Room Management</h2>
-              <p className="text-muted-foreground mb-6">Manage and configure rooms for your project.</p>
-              {roomsLoading ? (
-                <div className="flex items-center justify-center h-64">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : (
-                <RoomsList
-                  projectId={project.id}
-                  rooms={roomsData}
-                  onRoomClick={handleRoomClick}
-                  onAddRoom={handleAddRoom}
-                  onDeleteRoom={handleDeleteRoom}
-                  onRoomDeleted={handleRoomDeleted}
-                />
+              {(!activeSubTab || activeSubTab === 'tasklist') && (
+                permissions.tasks === 'none' ? (
+                  <NoAccessPlaceholder />
+                ) : (
+                  <TasksTab projectId={project.id} tasksScope={permissions.tasksScope as 'all' | 'assigned'} />
+                )
+              )}
+              {activeSubTab === 'timeline' && (
+                permissions.timeline === 'none' ? (
+                  <NoAccessPlaceholder />
+                ) : (
+                  <div>
+                    <h2 className="text-2xl font-bold mb-4">Project Timeline</h2>
+                    <ProjectTimeline projectId={project.id} />
+                  </div>
+                )
               )}
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="files" className="m-0 pb-8">
-          <ProjectFilesTab
-            projectId={project.id}
-            projectName={project.name}
-            onNavigateToFloorPlan={() => {
-              setActiveTab('spaceplanner');
-              setActiveSubTab('floorplan');
-            }}
-            onUseAsBackground={handleUseAsBackground}
-          />
-        </TabsContent>
-
-        <TabsContent value="tasks" className="m-0 pb-8">
-          <div className="container mx-auto px-4 py-8">
-            {(!activeSubTab || activeSubTab === 'tasklist') && (
-              <TasksTab projectId={project.id} />
-            )}
-            {activeSubTab === 'timeline' && (
-              <div>
-                <h2 className="text-2xl font-bold mb-4">Project Timeline</h2>
-                <ProjectTimeline projectId={project.id} />
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
         <TabsContent value="purchases" className="m-0 pb-8">
-          <div className="container mx-auto px-4 py-8">
-            <PurchaseRequestsTab projectId={project.id} />
-          </div>
+          {isTabBlocked("purchases") ? (
+            <NoAccessPlaceholder />
+          ) : (
+            <div className="container mx-auto px-4 py-8">
+              <PurchaseRequestsTab projectId={project.id} />
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="budget" className="m-0 pb-8">
-          <div className="container mx-auto px-4 py-8">
-            <BudgetTab projectId={project.id} />
-          </div>
+          {isTabBlocked("budget") ? (
+            <NoAccessPlaceholder />
+          ) : (
+            <div className="container mx-auto px-4 py-8">
+              <BudgetTab projectId={project.id} />
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="team" className="m-0 pb-8">
-          <div className="container mx-auto px-4 py-8">
-            <TeamManagement projectId={project.id} isOwner={isOwner} />
-          </div>
+          {isTabBlocked("team") ? (
+            <NoAccessPlaceholder />
+          ) : (
+            <div className="container mx-auto px-4 py-8">
+              <TeamManagement projectId={project.id} isOwner={permissions.isOwner} />
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 

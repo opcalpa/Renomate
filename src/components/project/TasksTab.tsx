@@ -77,9 +77,10 @@ interface TaskDependency {
 
 interface TasksTabProps {
   projectId: string;
+  tasksScope?: 'all' | 'assigned';
 }
 
-const TasksTab = ({ projectId }: TasksTabProps) => {
+const TasksTab = ({ projectId, tasksScope = 'all' }: TasksTabProps) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -87,6 +88,7 @@ const TasksTab = ({ projectId }: TasksTabProps) => {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [taskDependencies, setTaskDependencies] = useState<{ [key: string]: TaskDependency[] }>({});
   const [rooms, setRooms] = useState<{ id: string; name: string }[]>([]);
+  const [currentProfileId, setCurrentProfileId] = useState<string | null>(null);
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
   const [createStakeholderDialogOpen, setCreateStakeholderDialogOpen] = useState(false);
   const [newStakeholderName, setNewStakeholderName] = useState("");
@@ -148,6 +150,13 @@ const TasksTab = ({ projectId }: TasksTabProps) => {
     fetchRooms();
   }, [projectId]);
 
+  // Re-fetch tasks when profile ID is resolved and scope filtering is needed
+  useEffect(() => {
+    if (tasksScope === 'assigned' && currentProfileId) {
+      fetchTasks();
+    }
+  }, [currentProfileId, tasksScope]);
+
   const fetchRooms = async () => {
     try {
       const { data, error } = await supabase
@@ -175,6 +184,8 @@ const TasksTab = ({ projectId }: TasksTabProps) => {
         .single();
 
       if (!profile) return;
+
+      setCurrentProfileId(profile.id);
 
       // Check if user can create purchase requests
       const { data: shareData } = await supabase
@@ -216,11 +227,18 @@ const TasksTab = ({ projectId }: TasksTabProps) => {
       if (error) throw error;
 
       // Map database fields to our interface (assigned_to_contractor_id is deprecated, use assigned_to_stakeholder_id)
-      const mappedTasks = (data || []).map((task: any) => ({
+      let mappedTasks = (data || []).map((task: any) => ({
         ...task,
         assigned_to_stakeholder_id: task.assigned_to_stakeholder_id || task.assigned_to_contractor_id || null,
       }));
-      
+
+      // Filter to only assigned tasks if scope is 'assigned'
+      if (tasksScope === 'assigned' && currentProfileId) {
+        mappedTasks = mappedTasks.filter(
+          (task: any) => task.assigned_to_stakeholder_id === currentProfileId
+        );
+      }
+
       setTasks(mappedTasks as Task[]);
     } catch (error: any) {
       toast({
@@ -258,8 +276,10 @@ const TasksTab = ({ projectId }: TasksTabProps) => {
         .eq("project_id", projectId);
 
       if (shares) {
+        const existingIds = new Set(members.map(m => m.id));
         shares.forEach((share: any) => {
-          if (share.profiles) {
+          if (share.profiles && !existingIds.has(share.profiles.id)) {
+            existingIds.add(share.profiles.id);
             members.push({
               id: share.profiles.id,
               name: share.profiles.name,

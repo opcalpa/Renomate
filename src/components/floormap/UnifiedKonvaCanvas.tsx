@@ -507,9 +507,10 @@ const Grid: React.FC<GridProps> = ({ viewState, scaleSettings, projectSettings }
 
 interface UnifiedKonvaCanvasProps {
   onRoomCreated?: () => void;
+  isReadOnly?: boolean;
 }
 
-export const UnifiedKonvaCanvas: React.FC<UnifiedKonvaCanvasProps> = ({ onRoomCreated }) => {
+export const UnifiedKonvaCanvas: React.FC<UnifiedKonvaCanvasProps> = ({ onRoomCreated, isReadOnly }) => {
   const stageRef = useRef<Konva.Stage>(null);
   const shapeRefs = useRef<Map<string, Konva.Node>>(new Map());
   
@@ -1152,8 +1153,8 @@ export const UnifiedKonvaCanvas: React.FC<UnifiedKonvaCanvasProps> = ({ onRoomCr
         toast.info('Återgick till markör-verktyget');
       }
       
-      // Delete key
-      if ((e.key === 'Delete' || e.key === 'Backspace') && !isTyping) {
+      // Delete key (disabled in read-only mode)
+      if ((e.key === 'Delete' || e.key === 'Backspace') && !isTyping && !isReadOnly) {
         e.preventDefault();
         if (selectedShapeIdsRef.current.length > 0) {
           deleteShapesRef.current(selectedShapeIdsRef.current);
@@ -3702,10 +3703,11 @@ export const UnifiedKonvaCanvas: React.FC<UnifiedKonvaCanvasProps> = ({ onRoomCr
           )}
 
           {/* All shapes - sorted by zIndex for proper layering */}
+          <Group listening={!isReadOnly}>
           {[...currentShapes].sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0)).map((shape) => {
-            const isSelected = selectedShapeIds.includes(shape.id);
-            const handleSelect = (evt?: KonvaEventObject<MouseEvent>) => handleShapeClick(shape.id, shape.type, evt);
-            const handleTransform = (updates: Partial<FloorMapShape>) => handleShapeTransform(shape.id, updates);
+            const isSelected = isReadOnly ? false : selectedShapeIds.includes(shape.id);
+            const handleSelect = isReadOnly ? undefined : (evt?: KonvaEventObject<MouseEvent>) => handleShapeClick(shape.id, shape.type, evt);
+            const handleTransform = isReadOnly ? (() => {}) : (updates: Partial<FloorMapShape>) => handleShapeTransform(shape.id, updates);
             
             if (shape.type === 'freehand' || shape.type === 'polygon') {
               if (shape.metadata?.isLibrarySymbol) {
@@ -3789,7 +3791,8 @@ export const UnifiedKonvaCanvas: React.FC<UnifiedKonvaCanvasProps> = ({ onRoomCr
 
             return null;
           })}
-          
+          </Group>
+
           {/* Transformer removed - shapes handle their own selection visual (blue stroke) */}
           {/* Multi-select dragging handled by unified drag system */}
         </Layer>

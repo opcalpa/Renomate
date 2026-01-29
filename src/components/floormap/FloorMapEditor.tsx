@@ -16,9 +16,10 @@ interface FloorMapEditorProps {
   projectId: string;
   projectName?: string;
   onBack?: () => void;
+  isReadOnly?: boolean;
 }
 
-export const FloorMapEditor = ({ projectId, projectName, onBack }: FloorMapEditorProps) => {
+export const FloorMapEditor = ({ projectId, projectName, onBack, isReadOnly }: FloorMapEditorProps) => {
   const { t } = useTranslation();
   const {
     plans,
@@ -164,7 +165,7 @@ export const FloorMapEditor = ({ projectId, projectName, onBack }: FloorMapEdito
   return (
     <div className="flex flex-col h-full">
       {/* Top Bar with Plan Selector */}
-      <SpacePlannerTopBar projectId={projectId} projectName={projectName} onBack={onBack} />
+      <SpacePlannerTopBar projectId={projectId} projectName={projectName} onBack={onBack} isReadOnly={isReadOnly} />
       
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -206,8 +207,8 @@ export const FloorMapEditor = ({ projectId, projectName, onBack }: FloorMapEdito
         `
       }} />
       <div className="flex flex-1 relative pt-14"> {/* Padding for fixed TopBar */}
-        {/* Left Toolbar - Only show in floor plan mode */}
-        {viewMode === 'floor' && (
+        {/* Left Toolbar - Only show in floor plan mode and when not read-only */}
+        {viewMode === 'floor' && !isReadOnly && (
           <SimpleToolbar
             projectId={projectId}
             onSave={handleManualSave}
@@ -224,6 +225,7 @@ export const FloorMapEditor = ({ projectId, projectName, onBack }: FloorMapEdito
           <main className="flex-1 overflow-auto canvas-scroll-area relative">
             <UnifiedKonvaCanvas
               onRoomCreated={() => setRoomUpdateTrigger(prev => prev + 1)}
+              isReadOnly={isReadOnly}
             />
           </main>
         )}

@@ -49,13 +49,14 @@ const InvitationResponse = () => {
 
   const fetchInvitation = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from("project_invitations")
         .select(`
           id,
           email,
           role,
           status,
+          project_id,
           timeline_access,
           tasks_access,
           tasks_scope,
@@ -68,9 +69,14 @@ const InvitationResponse = () => {
         .eq("token", token)
         .single();
 
-      if (error || !data) {
+      if (fetchError || !data) {
         setError("Invitation not found or expired");
         return;
+      }
+
+      // If project join failed (RLS blocks unauthenticated reads), use project_id as fallback
+      if (!data.project) {
+        (data as any).project = { id: data.project_id, name: "Project" };
       }
 
       if (data.status === "accepted") {
@@ -124,13 +130,31 @@ const InvitationResponse = () => {
         throw new Error(`This invitation was sent to ${invitation.email}. Please log in with that email.`);
       }
 
-      // Create project share
+      // Fetch contractor_role from invitation (requires auth, so done here)
+      let contractorRole: string | null = null;
+      const { data: invData, error: invError } = await supabase
+        .from("project_invitations")
+        .select("contractor_role")
+        .eq("id", invitation.id)
+        .single();
+
+      if (!invError && invData?.contractor_role) {
+        contractorRole = invData.contractor_role;
+      }
+
+      const isContractor = contractorRole && contractorRole !== 'other';
+      const roleType = isContractor ? 'contractor' : 'other';
+      const contractorCategory = isContractor ? contractorRole : null;
+
+      // Create project share with role_type and contractor_category
       const { error: shareError } = await supabase
         .from("project_shares")
         .insert({
           project_id: invitation.project.id,
           shared_with_user_id: profile.id,
           role: invitation.role,
+          role_type: roleType,
+          contractor_category: contractorCategory,
           timeline_access: invitation.timeline_access || 'view',
           tasks_access: invitation.tasks_access || 'view',
           tasks_scope: invitation.tasks_scope || 'assigned',
@@ -141,6 +165,17 @@ const InvitationResponse = () => {
         });
 
       if (shareError) throw shareError;
+
+      // Update profile to reflect contractor role if invited as one
+      if (isContractor) {
+        await supabase
+          .from("profiles")
+          .update({
+            role: 'contractor',
+            contractor_category: contractorCategory,
+          })
+          .eq("id", profile.id);
+      }
 
       // Update invitation status
       const { error: updateError } = await supabase
@@ -263,10 +298,10 @@ const InvitationResponse = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold">{invitation.project.name}</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-lg font-semibold">{invitation.project?.name || "Project"}</h3>
+            <div className="text-sm text-muted-foreground flex items-center">
               Invited as: <Badge className="ml-2">{invitation.role}</Badge>
-            </p>
+            </div>
           </div>
 
           <div className="bg-muted/50 p-4 rounded-lg space-y-3">

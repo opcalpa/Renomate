@@ -249,11 +249,13 @@ const PurchaseRequestsTab = ({ projectId }: PurchaseRequestsTabProps) => {
       }
 
       if (sharesData) {
+        const existingIds = new Set(members.map(m => m.id));
         sharesData.forEach((share: any) => {
-          if (share.profiles) {
-            members.push({ 
-              id: share.profiles.id, 
-              name: share.profiles.name || "Team Member" 
+          if (share.profiles && !existingIds.has(share.profiles.id)) {
+            existingIds.add(share.profiles.id);
+            members.push({
+              id: share.profiles.id,
+              name: share.profiles.name || "Team Member"
             });
           }
         });
@@ -280,22 +282,9 @@ const PurchaseRequestsTab = ({ projectId }: PurchaseRequestsTabProps) => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      
-      // RLS should filter materials automatically, but we do extra client-side filtering for safety
-      // This ensures users only see materials they have access to
-      // Project owners see everything (no filtering needed)
-      const filteredMaterials = (data || []).filter((material: Material) => {
-        // Project owner sees everything
-        if (isProjectOwner) return true;
-        
-        // Always show if we don't have profileId yet (will be filtered on next fetch)
-        if (!currentProfileId) return true;
-        
-        // Check if user can view this material
-        return canViewMaterial(material);
-      });
-      
-      setMaterials(filteredMaterials);
+
+      // RLS handles visibility filtering server-side
+      setMaterials(data || []);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -807,6 +796,7 @@ const PurchaseRequestsTab = ({ projectId }: PurchaseRequestsTabProps) => {
                         <Select
                           value={material.status || "submitted"}
                           onValueChange={(value) => handleStatusChange(material.id, value)}
+                          disabled={userPurchasesAccess !== 'edit' && !isProjectOwner}
                         >
                           <SelectTrigger className="w-[110px]">
                             <SelectValue placeholder="Select status" />
@@ -965,9 +955,10 @@ const PurchaseRequestsTab = ({ projectId }: PurchaseRequestsTabProps) => {
 
               <div className="space-y-2">
                 <Label htmlFor="edit-status">Status</Label>
-                <Select 
-                  value={editingMaterial.status || "submitted"} 
+                <Select
+                  value={editingMaterial.status || "submitted"}
                   onValueChange={(value) => setEditingMaterial({ ...editingMaterial, status: value })}
+                  disabled={userPurchasesAccess !== 'edit' && !isProjectOwner}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />

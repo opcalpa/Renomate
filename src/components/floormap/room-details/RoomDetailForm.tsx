@@ -6,6 +6,8 @@ import {
   BarChart3,
   Image as ImageIcon,
   MessageSquare,
+  ClipboardList,
+  ShoppingCart,
 } from "lucide-react";
 import {
   Accordion,
@@ -22,6 +24,8 @@ import { VerticalSection } from "./sections/VerticalSection";
 import { TechnicalSection } from "./sections/TechnicalSection";
 import { SmartDataSection } from "./sections/SmartDataSection";
 import { PhotoSection } from "./PhotoSection";
+import { RelatedTasksSection } from "./sections/RelatedTasksSection";
+import { RelatedPurchaseOrdersSection } from "./sections/RelatedPurchaseOrdersSection";
 import type { RoomFormData, Room } from "./types";
 
 interface RoomDetailFormProps {
@@ -140,6 +144,36 @@ export function RoomDetailForm({
             />
           </AccordionContent>
         </AccordionItem>
+
+        {/* Tasks Section - only for existing rooms */}
+        {!isNewRoom && (
+          <AccordionItem value="tasks">
+            <AccordionTrigger className="hover:no-underline">
+              <div className="flex items-center gap-2">
+                <ClipboardList className="h-4 w-4 text-indigo-600" />
+                <span>Uppgifter</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <RelatedTasksSection roomId={room!.id} projectId={projectId} />
+            </AccordionContent>
+          </AccordionItem>
+        )}
+
+        {/* Purchase Orders Section - only for existing rooms */}
+        {!isNewRoom && (
+          <AccordionItem value="purchase-orders">
+            <AccordionTrigger className="hover:no-underline">
+              <div className="flex items-center gap-2">
+                <ShoppingCart className="h-4 w-4 text-teal-600" />
+                <span>Inköpsordrar</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <RelatedPurchaseOrdersSection roomId={room!.id} projectId={projectId} />
+            </AccordionContent>
+          </AccordionItem>
+        )}
 
         {/* Photos Section - only for existing rooms */}
         {!isNewRoom && (
